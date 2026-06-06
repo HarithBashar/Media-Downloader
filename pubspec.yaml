@@ -1,0 +1,93 @@
+name: media_downloader
+description: "Media Downloader — A modern desktop app for downloading videos and audio using yt-dlp."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Icons
+  cupertino_icons: ^1.0.8
+
+  # State management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.3.5
+
+  # Dependency injection
+  get_it: ^8.0.3
+
+  # Navigation
+  go_router: ^14.8.1
+
+  # HTTP client (binary downloads, version checks)
+  dio: ^5.8.0+1
+
+  # Platform paths
+  path_provider: ^2.1.5
+
+  # File/directory picker
+  file_picker: ^8.1.7
+
+  # Persistent key-value storage
+  shared_preferences: ^2.3.5
+
+  # Desktop window management
+  window_manager: ^0.4.3
+
+  # Animations
+  flutter_animate: ^4.5.0
+
+  # Drag and drop support
+  desktop_drop: ^0.4.4
+
+  # Logging
+  logger: ^2.5.0
+
+  # Immutable models & union types
+  freezed_annotation: ^3.0.0
+  json_annotation: ^4.9.0
+
+  # URL launching (open file/folder)
+  url_launcher: ^6.3.1
+
+  # App info
+  package_info_plus: ^8.3.0
+
+  # Internationalization
+  intl: ^0.19.0
+
+  # Google Fonts
+  google_fonts: ^6.2.1
+
+  # Path operations
+  path: ^1.9.1
+
+  # UUID generation
+  uuid: ^4.5.1
+  rename: ^3.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^5.0.0
+
+  # Code generation
+  riverpod_generator: ^2.4.3
+  build_runner: ^2.4.13
+  freezed: ^3.0.0
+  json_serializable: ^6.9.2
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
+
+
