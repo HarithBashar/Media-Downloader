@@ -1,0 +1,113 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build-macos:
+    name: Build macOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.0"
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build macOS
+        run: flutter build macos --release
+
+      - name: Zip macOS app
+        run: |
+          cd build/macos/Build/Products/Release
+          zip -r MediaDownloader-macOS.zip "media_downloader.app"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-build
+          path: build/macos/Build/Products/Release/MediaDownloader-macOS.zip
+
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            libblkid-dev \
+            liblzma-dev \
+            ninja-build \
+            cmake \
+            pkg-config
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.44.0"
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Linux
+        run: flutter build linux --release
+
+      - name: Zip Linux bundle
+        run: |
+          cd build/linux/x64/release
+          zip -r MediaDownloader-Linux.zip bundle/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: build/linux/x64/release/MediaDownloader-Linux.zip
+
+  release:
+    name: Create GitHub Release
+    needs: [build-macos, build-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: macos-build
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-build
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Media Downloader ${{ github.ref_name }}"
+          body: |
+            ## Download
+
+            | Platform | Download |
+            |----------|----------|
+            | macOS | [MediaDownloader-macOS.zip](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/MediaDownloader-macOS.zip) |
+            | Linux | [MediaDownloader-Linux.zip](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/MediaDownloader-Linux.zip) |
+
+            ### macOS Installation
+            1. Download and unzip
+            2. Move `media_downloader.app` to your Applications folder
+            3. First launch: right-click → Open → click "Open" (needed once to bypass Gatekeeper)
+
+            ### Linux Installation
+            1. Download and unzip
+            2. Run `./bundle/media_downloader` from the terminal
+          files: |
+            MediaDownloader-macOS.zip
+            MediaDownloader-Linux.zip
+          draft: false
+          prerelease: false
