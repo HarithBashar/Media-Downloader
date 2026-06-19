@@ -26,6 +26,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _urlController = TextEditingController();
+  final _filenameController = TextEditingController();
   final _urlFocusNode = FocusNode();
   bool _isDraggingOver = false;
 
@@ -36,6 +37,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _embedThumbnail = false;
   bool _embedMetadata = true;
   bool _downloadSubtitles = false;
+  bool _embedSubtitles = false;
+  String _subtitleLanguage = 'en';
   bool _sponsorBlock = false;
   String? _urlError;
 
@@ -116,10 +119,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       embedThumbnail: _embedThumbnail,
       embedMetadata: _embedMetadata,
       downloadSubtitles: _downloadSubtitles,
+      embedSubtitles: _embedSubtitles,
+      subtitleLanguage: _downloadSubtitles ? _subtitleLanguage : null,
       sponsorBlock: _sponsorBlock,
+      customFilename: _filenameController.text.trim().isEmpty
+          ? null
+          : _filenameController.text.trim(),
     );
 
-    setState(() => _urlController.clear());
+    setState(() {
+      _urlController.clear();
+      _filenameController.clear();
+    });
 
     // Show snackbar
     ScaffoldMessenger.of(context).showSnackBar(
@@ -141,6 +152,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void dispose() {
     _urlController.dispose();
+    _filenameController.dispose();
     _urlFocusNode.dispose();
     super.dispose();
   }
@@ -244,37 +256,129 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
             const SizedBox(height: 16),
 
+            // ── Custom Filename ────────────────────────────────────────────────
+            _SectionCard(
+              label: 'Filename',
+              child: TextField(
+                controller: _filenameController,
+                decoration: InputDecoration(
+                  hintText: 'Leave empty to use original title',
+                  hintStyle: TextStyle(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
+                  prefixIcon: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Icon(
+                      Icons.edit_outlined,
+                      color: colorScheme.onSurfaceVariant,
+                      size: 20,
+                    ),
+                  ),
+                  fillColor: colorScheme.surfaceContainerLow,
+                ),
+                style: textTheme.bodyLarge,
+              ),
+            ).animate().fadeIn(delay: 275.ms, duration: 400.ms),
+
+            const SizedBox(height: 16),
+
             // ── Options ───────────────────────────────────────────────────────
             _SectionCard(
               label: 'Options',
-              child: Wrap(
-                spacing: 12,
-                runSpacing: 8,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _OptionChip(
-                    label: 'Embed Thumbnail',
-                    icon: Icons.image_outlined,
-                    selected: _embedThumbnail,
-                    onToggle: (v) => setState(() => _embedThumbnail = v),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    children: [
+                      _OptionChip(
+                        label: 'Embed Thumbnail',
+                        icon: Icons.image_outlined,
+                        selected: _embedThumbnail,
+                        onToggle: (v) => setState(() => _embedThumbnail = v),
+                      ),
+                      _OptionChip(
+                        label: 'Embed Metadata',
+                        icon: Icons.info_outline_rounded,
+                        selected: _embedMetadata,
+                        onToggle: (v) => setState(() => _embedMetadata = v),
+                      ),
+                      _OptionChip(
+                        label: 'Subtitles',
+                        icon: Icons.subtitles_outlined,
+                        selected: _downloadSubtitles,
+                        onToggle: (v) => setState(() => _downloadSubtitles = v),
+                      ),
+                      _OptionChip(
+                        label: 'SponsorBlock',
+                        icon: Icons.block_outlined,
+                        selected: _sponsorBlock,
+                        onToggle: (v) => setState(() => _sponsorBlock = v),
+                      ),
+                    ],
                   ),
-                  _OptionChip(
-                    label: 'Embed Metadata',
-                    icon: Icons.info_outline_rounded,
-                    selected: _embedMetadata,
-                    onToggle: (v) => setState(() => _embedMetadata = v),
-                  ),
-                  _OptionChip(
-                    label: 'Subtitles',
-                    icon: Icons.subtitles_outlined,
-                    selected: _downloadSubtitles,
-                    onToggle: (v) => setState(() => _downloadSubtitles = v),
-                  ),
-                  _OptionChip(
-                    label: 'SponsorBlock',
-                    icon: Icons.block_outlined,
-                    selected: _sponsorBlock,
-                    onToggle: (v) => setState(() => _sponsorBlock = v),
-                  ),
+
+                  // Subtitle options (shown when subtitles are enabled)
+                  if (_downloadSubtitles) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: colorScheme.outlineVariant),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Subtitle Settings',
+                            style: textTheme.labelSmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              // Language dropdown
+                              Expanded(
+                                child: DropdownButtonFormField<String>(
+                                  initialValue: _subtitleLanguage,
+                                  decoration: InputDecoration(
+                                    labelText: 'Language',
+                                    labelStyle: textTheme.bodySmall,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  items: AppConstants.subtitleLanguages.map((lang) {
+                                    return DropdownMenuItem<String>(
+                                      value: lang['code'],
+                                      child: Text(lang['name']!, style: textTheme.bodyMedium),
+                                    );
+                                  }).toList(),
+                                  onChanged: (value) {
+                                    if (value != null) {
+                                      setState(() => _subtitleLanguage = value);
+                                    }
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              // Embed subtitles toggle
+                              _OptionChip(
+                                label: 'Embed in Video',
+                                icon: Icons.closed_caption_rounded,
+                                selected: _embedSubtitles,
+                                onToggle: (v) => setState(() => _embedSubtitles = v),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ).animate().fadeIn(delay: 300.ms, duration: 400.ms),

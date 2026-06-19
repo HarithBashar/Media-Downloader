@@ -75,16 +75,16 @@ class _DownloadCardState extends State<DownloadCard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Title
+                        // Title: prefer custom filename > fetched title > URL
                         Text(
-                          item.title ?? item.url,
+                          item.customFilename ?? item.title ?? item.url,
                           style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
 
-                        // Website + status
+                        // Website + playlist + status
                         Row(
                           children: [
                             if (item.websiteName != null) ...[
@@ -93,6 +93,35 @@ class _DownloadCardState extends State<DownloadCard> {
                                 style: textTheme.bodySmall?.copyWith(
                                   color: AppColors.primary,
                                   fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text('•', style: textTheme.bodySmall),
+                              const SizedBox(width: 8),
+                            ],
+                            if (item.playlistName != null) ...[
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.secondary.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: AppColors.secondary.withValues(alpha: 0.3)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.playlist_play_rounded, size: 12, color: AppColors.secondary),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      item.playlistName!,
+                                      style: textTheme.bodySmall?.copyWith(
+                                        fontSize: 10,
+                                        color: AppColors.secondary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
                                 ),
                               ),
                               const SizedBox(width: 8),

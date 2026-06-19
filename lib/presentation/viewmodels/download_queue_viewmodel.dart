@@ -74,12 +74,17 @@ class DownloadQueueViewModel extends Notifier<List<QueueEntry>> {
     required String outputDirectory,
     String? customArgs,
     String? subtitleLanguage,
+    String? customFilename,
+    String? playlistName,
+    String? title,
+    String? thumbnailUrl,
     bool embedSubtitles = false,
     bool embedThumbnail = false,
     bool embedMetadata = true,
     bool downloadSubtitles = false,
     bool downloadThumbnail = false,
     bool sponsorBlock = false,
+    bool isPlaylist = false,
   }) {
     _ensureRepos();
     final item = DownloadItem(
@@ -93,12 +98,17 @@ class DownloadQueueViewModel extends Notifier<List<QueueEntry>> {
       createdAt: DateTime.now(),
       customArgs: customArgs,
       subtitleLanguage: subtitleLanguage,
+      customFilename: customFilename,
+      playlistName: playlistName,
+      title: title,
+      thumbnailUrl: thumbnailUrl,
       embedSubtitles: embedSubtitles,
       embedThumbnail: embedThumbnail,
       embedMetadata: embedMetadata,
       downloadSubtitles: downloadSubtitles,
       downloadThumbnail: downloadThumbnail,
       sponsorBlock: sponsorBlock,
+      isPlaylist: isPlaylist,
       maxRetries: _settings.retryCount,
     );
 
@@ -225,7 +235,7 @@ class DownloadQueueViewModel extends Notifier<List<QueueEntry>> {
       final historyItem = HistoryItem(
         id: item.id,
         url: item.url,
-        title: item.title ?? item.url,
+        title: item.customFilename ?? item.title ?? item.url,
         outputPath: item.outputPath ?? item.outputDirectory,
         downloadedAt: DateTime.now(),
         type: item.type,

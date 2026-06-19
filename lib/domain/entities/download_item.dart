@@ -20,12 +20,15 @@ class DownloadItem {
     this.errorMessage,
     this.customArgs,
     this.subtitleLanguage,
+    this.customFilename,
+    this.playlistName,
     this.embedSubtitles = false,
     this.embedThumbnail = false,
     this.embedMetadata = false,
     this.downloadSubtitles = false,
     this.downloadThumbnail = false,
     this.sponsorBlock = false,
+    this.isPlaylist = false,
     this.priority = 0,
     this.retryCount = 0,
     this.maxRetries = 3,
@@ -77,12 +80,21 @@ class DownloadItem {
   /// Subtitle language code (e.g. "en", "ar").
   final String? subtitleLanguage;
 
+  /// User-specified output filename (without extension).
+  final String? customFilename;
+
+  /// Name of the playlist this download belongs to (null if standalone).
+  final String? playlistName;
+
   final bool embedSubtitles;
   final bool embedThumbnail;
   final bool embedMetadata;
   final bool downloadSubtitles;
   final bool downloadThumbnail;
   final bool sponsorBlock;
+
+  /// Whether this download should include all items in a playlist.
+  final bool isPlaylist;
 
   /// Queue priority (higher = processed first).
   final int priority;
@@ -112,12 +124,15 @@ class DownloadItem {
     String? errorMessage,
     String? customArgs,
     String? subtitleLanguage,
+    String? customFilename,
+    String? playlistName,
     bool? embedSubtitles,
     bool? embedThumbnail,
     bool? embedMetadata,
     bool? downloadSubtitles,
     bool? downloadThumbnail,
     bool? sponsorBlock,
+    bool? isPlaylist,
     int? priority,
     int? retryCount,
     int? maxRetries,
@@ -139,12 +154,15 @@ class DownloadItem {
       errorMessage: errorMessage ?? this.errorMessage,
       customArgs: customArgs ?? this.customArgs,
       subtitleLanguage: subtitleLanguage ?? this.subtitleLanguage,
+      customFilename: customFilename ?? this.customFilename,
+      playlistName: playlistName ?? this.playlistName,
       embedSubtitles: embedSubtitles ?? this.embedSubtitles,
       embedThumbnail: embedThumbnail ?? this.embedThumbnail,
       embedMetadata: embedMetadata ?? this.embedMetadata,
       downloadSubtitles: downloadSubtitles ?? this.downloadSubtitles,
       downloadThumbnail: downloadThumbnail ?? this.downloadThumbnail,
       sponsorBlock: sponsorBlock ?? this.sponsorBlock,
+      isPlaylist: isPlaylist ?? this.isPlaylist,
       priority: priority ?? this.priority,
       retryCount: retryCount ?? this.retryCount,
       maxRetries: maxRetries ?? this.maxRetries,

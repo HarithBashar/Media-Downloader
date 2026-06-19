@@ -27,6 +27,12 @@ const _navItems = [
     label: 'Download',
   ),
   _NavItem(
+    route: AppRoutes.playlist,
+    icon: Icons.playlist_play_outlined,
+    selectedIcon: Icons.playlist_play_rounded,
+    label: 'Playlist',
+  ),
+  _NavItem(
     route: AppRoutes.queue,
     icon: Icons.list_alt_outlined,
     selectedIcon: Icons.list_alt_rounded,

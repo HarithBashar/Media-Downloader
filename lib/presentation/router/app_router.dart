@@ -5,6 +5,7 @@ import '../../core/constants/app_constants.dart';
 import '../screens/splash/splash_screen.dart';
 import '../screens/setup/setup_screen.dart';
 import '../screens/home/home_screen.dart';
+import '../screens/playlist/playlist_screen.dart';
 import '../screens/queue/queue_screen.dart';
 import '../screens/history/history_screen.dart';
 import '../screens/settings/settings_screen.dart';
@@ -56,6 +57,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.home,
             pageBuilder: (_, __) => const CustomTransitionPage(
               child: HomeScreen(),
+              transitionsBuilder: _contentTransition,
+            ),
+          ),
+          GoRoute(
+            path: AppRoutes.playlist,
+            pageBuilder: (_, __) => const CustomTransitionPage(
+              child: PlaylistScreen(),
               transitionsBuilder: _contentTransition,
             ),
           ),

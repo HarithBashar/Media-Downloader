@@ -19,7 +19,10 @@ class QueueScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final queue = ref.watch(downloadQueueProvider);
+    final rawQueue = ref.watch(downloadQueueProvider);
+    // Sort newest first (descending by createdAt)
+    final queue = List<QueueEntry>.from(rawQueue)
+      ..sort((a, b) => b.item.createdAt.compareTo(a.item.createdAt));
     final colorScheme = Theme.of(context).colorScheme;
     final active = queue.where((e) => e.item.status.isActive).length;
     final completed = queue.where((e) => e.item.status == DownloadStatus.completed).length;

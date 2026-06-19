@@ -89,6 +89,7 @@ class AppRoutes {
   static const String splash = '/splash';
   static const String setup = '/setup';
   static const String home = '/';
+  static const String playlist = '/playlist';
   static const String queue = '/queue';
   static const String history = '/history';
   static const String settings = '/settings';

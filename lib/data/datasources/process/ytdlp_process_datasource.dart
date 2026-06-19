@@ -7,6 +7,7 @@ import '../../../core/utils/duration_formatter.dart';
 import '../../../core/utils/size_formatter.dart';
 import '../../../domain/entities/download_enums.dart';
 import '../../../domain/entities/download_item.dart';
+import '../../../domain/entities/playlist_video_info.dart';
 
 /// Raw yt-dlp process wrapper that manages subprocess lifecycle.
 ///
@@ -70,6 +71,97 @@ class YtDlpProcessDatasource {
     }
   }
 
+  /// Active playlist fetch process (only one at a time).
+  Process? _playlistFetchProcess;
+
+  /// Fetches metadata for all videos in a playlist without downloading.
+  ///
+  /// Runs `yt-dlp --dump-json --flat-playlist <url>` and emits a
+  /// [PlaylistVideoInfo] for each video as it's parsed.
+  Stream<PlaylistVideoInfo> fetchPlaylistInfo(String url) {
+    final controller = StreamController<PlaylistVideoInfo>.broadcast();
+
+    _runPlaylistFetch(url, controller).catchError((Object err) {
+      if (!controller.isClosed) {
+        controller.addError(err);
+        controller.close();
+      }
+    });
+
+    return controller.stream;
+  }
+
+  /// Cancels an active playlist fetch.
+  void cancelPlaylistFetch() {
+    _playlistFetchProcess?.kill(ProcessSignal.sigterm);
+    _playlistFetchProcess = null;
+  }
+
+  Future<void> _runPlaylistFetch(
+    String url,
+    StreamController<PlaylistVideoInfo> controller,
+  ) async {
+    final args = [
+      '--dump-json',
+      '--flat-playlist',
+      '--no-warnings',
+      url,
+    ];
+
+    _logger.d('[yt-dlp] Fetching playlist: $_ytDlpPath ${args.join(' ')}');
+
+    late Process process;
+    try {
+      process = await Process.start(_ytDlpPath, args);
+    } on ProcessException catch (e) {
+      throw YtDlpException('Failed to start yt-dlp for playlist fetch.', cause: e);
+    }
+    _playlistFetchProcess = process;
+
+    process.stdout
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .listen(
+      (line) {
+        final trimmed = line.trim();
+        if (trimmed.isEmpty || !trimmed.startsWith('{')) return;
+        try {
+          final json = jsonDecode(trimmed) as Map<String, dynamic>;
+          final video = PlaylistVideoInfo.fromJson(json);
+          if (!controller.isClosed) controller.add(video);
+        } catch (e) {
+          _logger.w('[yt-dlp playlist] Failed to parse JSON line: $e');
+        }
+      },
+      cancelOnError: false,
+    );
+
+    final stderrBuffer = StringBuffer();
+    process.stderr.transform(utf8.decoder).transform(const LineSplitter()).listen(
+      (line) {
+        _logger.w('[yt-dlp playlist stderr] $line');
+        stderrBuffer.writeln(line);
+      },
+      cancelOnError: false,
+    );
+
+    final exitCode = await process.exitCode;
+    _playlistFetchProcess = null;
+
+    if (controller.isClosed) return;
+
+    if (exitCode != 0) {
+      final stderr = stderrBuffer.toString().trim();
+      final msg = stderr.contains('is not a valid URL')
+          ? 'Invalid playlist URL.'
+          : stderr.contains('not a playlist')
+              ? 'This URL does not appear to be a playlist.'
+              : 'Failed to fetch playlist info.';
+      controller.addError(YtDlpException(msg));
+    }
+    controller.close();
+  }
+
   // ─── Private ─────────────────────────────────────────────────────────────────
 
   Future<void> _startProcess(
@@ -92,13 +184,49 @@ class YtDlpProcessDatasource {
 
     DownloadItem current = item.copyWith(status: DownloadStatus.downloading);
 
+    // Phase tracking: yt-dlp downloads video and audio as separate files
+    // for formats like bestvideo+bestaudio. We track phases to merge
+    // them into a single progress row.
+    int currentPhase = 1;
+    double lastPercentage = 0;
+    int accumulatedBytes = 0; // bytes from completed phases
+    int accumulatedTotal = 0; // total bytes from completed phases
+
     // Parse stdout line by line
     process.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen(
       (line) {
         _logger.t('[yt-dlp stdout] $line');
         final updated = _parseLine(line, current);
         if (updated != null) {
-          current = updated;
+          // Detect new download phase: percentage drops significantly
+          final newPct = updated.progress?.percentage ?? 0;
+          if (lastPercentage > 90 && newPct < 10 && currentPhase >= 1) {
+            // Save the completed phase bytes
+            accumulatedBytes += current.progress?.totalBytes ?? current.progress?.downloadedBytes ?? 0;
+            accumulatedTotal += current.progress?.totalBytes ?? 0;
+            currentPhase++;
+          }
+          lastPercentage = newPct;
+
+          // Merge progress across phases
+          if (currentPhase > 1 && updated.progress != null) {
+            final phaseDownloaded = updated.progress!.downloadedBytes ?? 0;
+            final phaseTotal = updated.progress!.totalBytes ?? 0;
+            final totalDownloaded = accumulatedBytes + phaseDownloaded;
+            final totalSize = accumulatedTotal + phaseTotal;
+            final mergedPercentage = totalSize > 0
+                ? (totalDownloaded / totalSize * 100).clamp(0.0, 99.9)
+                : newPct;
+            current = updated.copyWith(
+              progress: updated.progress!.copyWith(
+                percentage: mergedPercentage,
+                downloadedBytes: totalDownloaded,
+                totalBytes: totalSize > 0 ? totalSize : null,
+              ),
+            );
+          } else {
+            current = updated;
+          }
           if (!controller.isClosed) controller.add(current);
         }
       },
@@ -143,7 +271,8 @@ class YtDlpProcessDatasource {
   /// Builds the yt-dlp argument list from [item] configuration.
   List<String> _buildArgs(DownloadItem item) {
     final args = <String>[
-      '--no-playlist',
+      // Playlist mode control
+      if (item.isPlaylist) '--yes-playlist' else '--no-playlist',
       '--newline',
       '--progress',
       '--progress-template',
@@ -159,10 +288,13 @@ class YtDlpProcessDatasource {
       args.addAll(['--ffmpeg-location', ffmpegPath]);
     }
 
-    // Output template
+    // Output template — use custom filename if provided
+    final filenameTemplate = (item.customFilename != null && item.customFilename!.trim().isNotEmpty)
+        ? item.customFilename!.trim()
+        : '%(title)s';
     args.addAll([
       '-o',
-      '${item.outputDirectory}/%(title)s.%(ext)s',
+      '${item.outputDirectory}/$filenameTemplate.%(ext)s',
     ]);
 
     // Download type specific args
@@ -183,9 +315,11 @@ class YtDlpProcessDatasource {
     if (item.downloadSubtitles) {
       args.add('--write-subs');
       args.add('--write-auto-subs');
-      if (item.subtitleLanguage != null) {
-        args.addAll(['--sub-lang', item.subtitleLanguage!]);
-      }
+      // Always specify a subtitle language to avoid failures
+      final subLang = (item.subtitleLanguage != null && item.subtitleLanguage!.isNotEmpty)
+          ? item.subtitleLanguage!
+          : 'en';
+      args.addAll(['--sub-lang', subLang]);
       if (item.embedSubtitles) args.add('--embed-subs');
     }
 
