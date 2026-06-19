@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/l10n/app_languages.dart';
 import '../../core/themes/app_colors.dart';
+import '../../l10n/app_localizations.dart';
 import '../viewmodels/download_queue_viewmodel.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,12 +13,10 @@ class _NavItem {
     required this.route,
     required this.icon,
     required this.selectedIcon,
-    required this.label,
   });
   final String route;
   final IconData icon;
   final IconData selectedIcon;
-  final String label;
 }
 
 const _navItems = [
@@ -24,33 +24,38 @@ const _navItems = [
     route: AppRoutes.home,
     icon: Icons.download_outlined,
     selectedIcon: Icons.download_rounded,
-    label: 'Download',
   ),
   _NavItem(
     route: AppRoutes.playlist,
     icon: Icons.playlist_play_outlined,
     selectedIcon: Icons.playlist_play_rounded,
-    label: 'Playlist',
   ),
   _NavItem(
     route: AppRoutes.queue,
     icon: Icons.list_alt_outlined,
     selectedIcon: Icons.list_alt_rounded,
-    label: 'Queue',
   ),
   _NavItem(
     route: AppRoutes.history,
     icon: Icons.history_outlined,
     selectedIcon: Icons.history_rounded,
-    label: 'History',
   ),
   _NavItem(
     route: AppRoutes.settings,
     icon: Icons.settings_outlined,
     selectedIcon: Icons.settings_rounded,
-    label: 'Settings',
   ),
 ];
+
+/// Localized label for a navigation [route].
+String _navLabel(AppLocalizations l, String route) => switch (route) {
+      AppRoutes.home => l.navDownload,
+      AppRoutes.playlist => l.navPlaylist,
+      AppRoutes.queue => l.navQueue,
+      AppRoutes.history => l.navHistory,
+      AppRoutes.settings => l.navSettings,
+      _ => '',
+    };
 
 /// Vertical sidebar navigation for the desktop layout.
 class SidebarNav extends ConsumerWidget {
@@ -228,7 +233,7 @@ class _NavTileState extends State<_NavTile> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  widget.item.label,
+                  _navLabel(context.l10n, widget.item.route),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: isSelected ? AppColors.primary : colorScheme.onSurface,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,

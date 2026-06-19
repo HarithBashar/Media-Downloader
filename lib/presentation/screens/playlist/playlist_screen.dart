@@ -5,10 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/l10n/app_languages.dart';
 import '../../../core/themes/app_colors.dart';
 import '../../../core/utils/url_validator.dart';
 import '../../../core/utils/file_utils.dart';
 import '../../../domain/entities/download_enums.dart';
+import '../../l10n/enum_localizations.dart';
 import '../../viewmodels/playlist_viewmodel.dart';
 import '../../viewmodels/settings_viewmodel.dart';
 import '../../widgets/content_scaffold.dart';
@@ -64,7 +66,7 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
       return;
     }
     setState(() {
-      _urlError = UrlValidator.isValidUrl(value) ? null : 'Please enter a valid URL';
+      _urlError = UrlValidator.isValidUrl(value) ? null : context.l10n.invalidUrl;
     });
   }
 
@@ -78,7 +80,7 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
 
   Future<void> _pickOutputDirectory() async {
     String? path = await FilePicker.platform.getDirectoryPath(
-      dialogTitle: 'Select Download Folder',
+      dialogTitle: context.l10n.selectDownloadFolderDialog,
       initialDirectory: _outputDirectory,
     );
     if (path != null) {
@@ -87,16 +89,17 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
   }
 
   void _startDownload() {
+    final l10n = context.l10n;
     final state = ref.read(playlistProvider);
     if (state.selectedIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select at least one video to download.')),
+        SnackBar(content: Text(l10n.selectAtLeastOneVideo)),
       );
       return;
     }
     if (_outputDirectory == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a download folder.')),
+        SnackBar(content: Text(l10n.selectDownloadFolder)),
       );
       return;
     }
@@ -111,7 +114,7 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
     );
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Added ${state.selectedCount} videos to queue.')),
+      SnackBar(content: Text(l10n.addedVideosToQueue(state.selectedCount))),
     );
   }
 
@@ -119,10 +122,11 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final l10n = context.l10n;
     final state = ref.watch(playlistProvider);
 
     return ContentScaffold(
-      title: 'Playlist Download',
+      title: l10n.playlistTitle,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -133,12 +137,12 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Fetch & Download Playlist',
+                  l10n.fetchAndDownloadPlaylist,
                   style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
                 ).animate().fadeIn(duration: 400.ms).slideX(begin: -0.05),
                 const SizedBox(height: 4),
                 Text(
-                  'Paste a playlist or channel URL to load all videos before downloading.',
+                  l10n.playlistSubtitle,
                   style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
                 ).animate().fadeIn(delay: 100.ms, duration: 400.ms),
 
@@ -169,7 +173,7 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
                             onSubmitted: (_) => _fetchPlaylist(),
                             style: textTheme.bodyLarge,
                             decoration: InputDecoration(
-                              hintText: 'Paste playlist URL here...',
+                              hintText: l10n.pastePlaylistUrlHint,
                               errorText: _urlError,
                               fillColor: colorScheme.surfaceContainerLow,
                               prefixIcon: const Icon(Icons.link_rounded),
@@ -192,7 +196,7 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
                         icon: state.isLoading 
                             ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                             : const Icon(Icons.search_rounded),
-                        label: Text(state.isLoading ? 'Fetching...' : 'Fetch'),
+                        label: Text(state.isLoading ? l10n.fetching : l10n.fetch),
                         style: FilledButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 24),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppConstants.borderRadius)),
@@ -227,8 +231,8 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
 
           // Videos List
           if (state.isFetched && state.videos.isEmpty && !state.isLoading && state.error == null)
-            const Expanded(
-              child: Center(child: Text('No videos found in this playlist.')),
+            Expanded(
+              child: Center(child: Text(l10n.noVideosFound)),
             )
           else if (state.videos.isNotEmpty)
             Expanded(
@@ -239,15 +243,15 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
                     // List Header & Actions
                     Row(
                       children: [
-                        Text('${state.totalCount} videos found', style: textTheme.titleMedium),
+                        Text(l10n.videosFound(state.totalCount), style: textTheme.titleMedium),
                         const Spacer(),
                         TextButton(
                           onPressed: () => ref.read(playlistProvider.notifier).selectAll(),
-                          child: const Text('Select All'),
+                          child: Text(l10n.selectAll),
                         ),
                         TextButton(
                           onPressed: () => ref.read(playlistProvider.notifier).deselectAll(),
-                          child: const Text('Deselect All'),
+                          child: Text(l10n.deselectAll),
                         ),
                       ],
                     ),
@@ -322,12 +326,12 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Format', style: textTheme.labelSmall),
+                          Text(l10n.format, style: textTheme.labelSmall),
                           const SizedBox(height: 8),
                           DropdownButton<DownloadType>(
                             value: _downloadType,
                             isExpanded: true,
-                            items: DownloadType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.name.toUpperCase()))).toList(),
+                            items: DownloadType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.localizedLabel(l10n)))).toList(),
                             onChanged: (v) => setState(() => _downloadType = v!),
                           ),
                         ],
@@ -340,7 +344,7 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Save to', style: textTheme.labelSmall),
+                          Text(l10n.saveTo, style: textTheme.labelSmall),
                           const SizedBox(height: 8),
                           InkWell(
                             onTap: _pickOutputDirectory,
@@ -356,7 +360,7 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
                                 children: [
                                   const Icon(Icons.folder_outlined, size: 18),
                                   const SizedBox(width: 8),
-                                  Expanded(child: Text(_outputDirectory ?? 'Select folder', maxLines: 1, overflow: TextOverflow.ellipsis)),
+                                  Expanded(child: Text(_outputDirectory ?? l10n.selectFolder, maxLines: 1, overflow: TextOverflow.ellipsis)),
                                 ],
                               ),
                             ),
@@ -371,7 +375,7 @@ class _PlaylistScreenState extends ConsumerState<PlaylistScreen> {
                       icon: const Icon(Icons.playlist_add_rounded),
                       label: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-                        child: Text('Download ${state.selectedCount}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        child: Text(l10n.downloadCount(state.selectedCount), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       ),
                       style: FilledButton.styleFrom(
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

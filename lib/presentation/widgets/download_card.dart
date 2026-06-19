@@ -1,10 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/l10n/app_languages.dart';
 import '../../core/themes/app_colors.dart';
 import '../../core/utils/size_formatter.dart';
 import '../../core/utils/duration_formatter.dart';
 import '../../domain/entities/download_enums.dart';
 import '../../domain/entities/download_item.dart';
+import '../l10n/enum_localizations.dart';
 
 /// Card widget for a single download item in the queue.
 ///
@@ -34,6 +38,19 @@ class DownloadCard extends StatefulWidget {
 
 class _DownloadCardState extends State<DownloadCard> {
   bool _hovering = false;
+
+  /// Opens the completed file in the system's default player.
+  Future<void> _openFile(String path) async {
+    final uri = Uri.file(path);
+    if (await canLaunchUrl(uri)) await launchUrl(uri);
+  }
+
+  /// Reveals the completed file's folder in the system file manager.
+  Future<void> _openFolder(String path) async {
+    final dir = File(path).parent;
+    final uri = Uri.file(dir.path);
+    if (await canLaunchUrl(uri)) await launchUrl(uri);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -139,14 +156,20 @@ class _DownloadCardState extends State<DownloadCard> {
                   AnimatedOpacity(
                     opacity: _hovering ? 1.0 : 0.6,
                     duration: AppConstants.shortAnimation,
-                    child: _ActionButtons(
-                      status: item.status,
-                      onPause: widget.onPause,
-                      onResume: widget.onResume,
-                      onCancel: widget.onCancel,
-                      onRetry: widget.onRetry,
-                      onRemove: widget.onRemove,
-                    ),
+                    child: Builder(builder: (context) {
+                      final outputPath = item.outputPath ?? item.progress?.filename;
+                      final hasFile = outputPath != null && outputPath.isNotEmpty;
+                      return _ActionButtons(
+                        status: item.status,
+                        onPause: widget.onPause,
+                        onResume: widget.onResume,
+                        onCancel: widget.onCancel,
+                        onRetry: widget.onRetry,
+                        onRemove: widget.onRemove,
+                        onOpenFile: hasFile ? () => _openFile(outputPath) : null,
+                        onOpenFolder: hasFile ? () => _openFolder(outputPath) : null,
+                      );
+                    }),
                   ),
                 ],
               ),
@@ -292,7 +315,7 @@ class _StatusBadge extends StatelessWidget {
           _StatusDot(color: color, isAnimated: status.isActive),
           const SizedBox(width: 5),
           Text(
-            status.label,
+            status.localizedLabel(context.l10n),
             style: TextStyle(
               color: color,
               fontSize: 11,
@@ -394,6 +417,8 @@ class _ActionButtons extends StatelessWidget {
     required this.onCancel,
     required this.onRetry,
     required this.onRemove,
+    this.onOpenFile,
+    this.onOpenFolder,
   });
   final DownloadStatus status;
   final VoidCallback onPause;
@@ -401,23 +426,42 @@ class _ActionButtons extends StatelessWidget {
   final VoidCallback onCancel;
   final VoidCallback onRetry;
   final VoidCallback onRemove;
+  final VoidCallback? onOpenFile;
+  final VoidCallback? onOpenFolder;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // Completed: let the user play the file or reveal its folder.
+        if (status == DownloadStatus.completed) ...[
+          if (onOpenFile != null)
+            _IconBtn(
+              icon: Icons.play_circle_fill_rounded,
+              tooltip: l10n.play,
+              onPressed: onOpenFile!,
+              color: AppColors.primary,
+            ),
+          if (onOpenFolder != null)
+            _IconBtn(
+              icon: Icons.folder_open_rounded,
+              tooltip: l10n.openFolder,
+              onPressed: onOpenFolder!,
+            ),
+        ],
         if (status.canPause)
-          _IconBtn(icon: Icons.pause_rounded, tooltip: 'Pause', onPressed: onPause),
+          _IconBtn(icon: Icons.pause_rounded, tooltip: l10n.pause, onPressed: onPause),
         if (status.canResume)
-          _IconBtn(icon: Icons.play_arrow_rounded, tooltip: 'Resume', onPressed: onResume),
+          _IconBtn(icon: Icons.play_arrow_rounded, tooltip: l10n.resume, onPressed: onResume),
         if (status.canRetry)
-          _IconBtn(icon: Icons.replay_rounded, tooltip: 'Retry', onPressed: onRetry),
+          _IconBtn(icon: Icons.replay_rounded, tooltip: l10n.retry, onPressed: onRetry),
         if (status.isActive || status == DownloadStatus.waiting)
-          _IconBtn(icon: Icons.close_rounded, tooltip: 'Cancel', onPressed: onCancel),
+          _IconBtn(icon: Icons.close_rounded, tooltip: l10n.cancel, onPressed: onCancel),
         _IconBtn(
           icon: Icons.delete_outline_rounded,
-          tooltip: 'Remove',
+          tooltip: l10n.remove,
           onPressed: onRemove,
           color: AppColors.error,
         ),

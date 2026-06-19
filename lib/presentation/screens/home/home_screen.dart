@@ -5,10 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/l10n/app_languages.dart';
 import '../../../core/themes/app_colors.dart';
 import '../../../core/utils/url_validator.dart';
 import '../../../core/utils/file_utils.dart';
 import '../../../domain/entities/download_enums.dart';
+import '../../l10n/enum_localizations.dart';
 import '../../viewmodels/download_queue_viewmodel.dart';
 import '../../viewmodels/settings_viewmodel.dart';
 import '../../widgets/content_scaffold.dart';
@@ -81,7 +83,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (value.trim().isEmpty) {
         _urlError = null;
       } else if (!UrlValidator.isValidUrl(value)) {
-        _urlError = 'Please enter a valid URL';
+        _urlError = context.l10n.invalidUrl;
       } else {
         _urlError = null;
       }
@@ -90,7 +92,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Future<void> _pickOutputDirectory() async {
     final result = await FilePicker.platform.getDirectoryPath(
-      dialogTitle: 'Select Download Location',
+      dialogTitle: context.l10n.selectDownloadLocation,
       initialDirectory: _outputDirectory,
     );
     if (result != null) {
@@ -105,7 +107,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void _startDownload() {
     final url = _urlController.text.trim();
     if (!UrlValidator.isValidUrl(url)) {
-      setState(() => _urlError = 'Please enter a valid URL');
+      setState(() => _urlError = context.l10n.invalidUrl);
       return;
     }
     if (_outputDirectory == null) return;
@@ -135,11 +137,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // Show snackbar
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Row(
+        content: Row(
           children: [
-            Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 18),
-            SizedBox(width: 8),
-            Text('Download added to queue'),
+            const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Text(context.l10n.downloadAddedToQueue),
           ],
         ),
         backgroundColor: AppColors.success,
@@ -161,9 +163,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final l10n = context.l10n;
 
     return ContentScaffold(
-      title: 'Download',
+      title: l10n.homeTitle,
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
@@ -171,12 +174,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           children: [
             // ── Header ────────────────────────────────────────────────────────
             Text(
-              'Add Download',
+              l10n.addDownload,
               style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
             ).animate().fadeIn(duration: 400.ms).slideX(begin: -0.05),
             const SizedBox(height: 4),
             Text(
-              'Paste a URL, drag & drop, or let us detect from your clipboard',
+              l10n.addDownloadSubtitle,
               style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
             ).animate().fadeIn(delay: 100.ms, duration: 400.ms),
 
@@ -217,7 +220,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               children: [
                 Expanded(
                   child: _SectionCard(
-                    label: 'Type',
+                    label: l10n.type,
                     child: _DownloadTypeSelector(
                       selected: _downloadType,
                       onChanged: (t) => setState(() => _downloadType = t),
@@ -228,7 +231,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Expanded(
                   flex: 2,
                   child: _SectionCard(
-                    label: 'Quality',
+                    label: l10n.quality,
                     child: _downloadType == DownloadType.video
                         ? _VideoQualitySelector(
                             selected: _videoQuality,
@@ -247,7 +250,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
             // ── Output Directory ──────────────────────────────────────────────
             _SectionCard(
-              label: 'Save to',
+              label: l10n.saveTo,
               child: _OutputDirectoryPicker(
                 path: _outputDirectory,
                 onTap: _pickOutputDirectory,
@@ -258,11 +261,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
             // ── Custom Filename ────────────────────────────────────────────────
             _SectionCard(
-              label: 'Filename',
+              label: l10n.filename,
               child: TextField(
                 controller: _filenameController,
                 decoration: InputDecoration(
-                  hintText: 'Leave empty to use original title',
+                  hintText: l10n.filenameHint,
                   hintStyle: TextStyle(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
                   prefixIcon: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -282,7 +285,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
             // ── Options ───────────────────────────────────────────────────────
             _SectionCard(
-              label: 'Options',
+              label: l10n.options,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -291,25 +294,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     runSpacing: 8,
                     children: [
                       _OptionChip(
-                        label: 'Embed Thumbnail',
+                        label: l10n.embedThumbnail,
                         icon: Icons.image_outlined,
                         selected: _embedThumbnail,
                         onToggle: (v) => setState(() => _embedThumbnail = v),
                       ),
                       _OptionChip(
-                        label: 'Embed Metadata',
+                        label: l10n.embedMetadata,
                         icon: Icons.info_outline_rounded,
                         selected: _embedMetadata,
                         onToggle: (v) => setState(() => _embedMetadata = v),
                       ),
                       _OptionChip(
-                        label: 'Subtitles',
+                        label: l10n.subtitles,
                         icon: Icons.subtitles_outlined,
                         selected: _downloadSubtitles,
                         onToggle: (v) => setState(() => _downloadSubtitles = v),
                       ),
                       _OptionChip(
-                        label: 'SponsorBlock',
+                        label: l10n.sponsorBlock,
                         icon: Icons.block_outlined,
                         selected: _sponsorBlock,
                         onToggle: (v) => setState(() => _sponsorBlock = v),
@@ -331,7 +334,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Subtitle Settings',
+                            l10n.subtitleSettings,
                             style: textTheme.labelSmall?.copyWith(
                               color: colorScheme.onSurfaceVariant,
                               fontWeight: FontWeight.w600,
@@ -345,7 +348,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 child: DropdownButtonFormField<String>(
                                   initialValue: _subtitleLanguage,
                                   decoration: InputDecoration(
-                                    labelText: 'Language',
+                                    labelText: l10n.language,
                                     labelStyle: textTheme.bodySmall,
                                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                     border: OutlineInputBorder(
@@ -368,7 +371,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               const SizedBox(width: 16),
                               // Embed subtitles toggle
                               _OptionChip(
-                                label: 'Embed in Video',
+                                label: l10n.embedInVideo,
                                 icon: Icons.closed_caption_rounded,
                                 selected: _embedSubtitles,
                                 onToggle: (v) => setState(() => _embedSubtitles = v),
@@ -427,8 +430,8 @@ class _UrlInputField extends StatelessWidget {
       style: Theme.of(context).textTheme.bodyLarge,
       decoration: InputDecoration(
         hintText: isDragging
-            ? 'Drop URL here…'
-            : 'Paste URL here (YouTube, Vimeo, TikTok, and 1000+ more)',
+            ? context.l10n.dropUrlHere
+            : context.l10n.pasteUrlHint,
         hintStyle: TextStyle(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
         prefixIcon: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -441,7 +444,7 @@ class _UrlInputField extends StatelessWidget {
             ? IconButton(
                 icon: const Icon(Icons.clear_rounded),
                 onPressed: () => controller.clear(),
-                tooltip: 'Clear',
+                tooltip: context.l10n.clear,
               )
             : IconButton(
                 icon: const Icon(Icons.content_paste_rounded),
@@ -449,7 +452,7 @@ class _UrlInputField extends StatelessWidget {
                   final data = await Clipboard.getData(Clipboard.kTextPlain);
                   if (data?.text != null) controller.text = data!.text!;
                 },
-                tooltip: 'Paste from clipboard',
+                tooltip: context.l10n.pasteFromClipboard,
               ),
         errorText: errorText,
         fillColor: isDragging
@@ -548,7 +551,7 @@ class _TypeOption extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              type.label,
+              type.localizedLabel(context.l10n),
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 color: isSelected ? AppColors.primary : colorScheme.onSurface,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
@@ -573,7 +576,7 @@ class _VideoQualitySelector extends StatelessWidget {
       runSpacing: 8,
       children: VideoQuality.values.where((q) => q != VideoQuality.custom).map((q) {
         return _QualityChip(
-          label: q.label,
+          label: q.localizedLabel(context.l10n),
           isSelected: selected == q,
           onTap: () => onChanged(q),
         );
@@ -594,7 +597,7 @@ class _AudioQualitySelector extends StatelessWidget {
       runSpacing: 8,
       children: AudioQuality.values.map((q) {
         return _QualityChip(
-          label: q.label,
+          label: q.localizedLabel(context.l10n),
           isSelected: selected == q,
           onTap: () => onChanged(q),
         );
@@ -660,7 +663,7 @@ class _OutputDirectoryPicker extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    path ?? 'No folder selected',
+                    path ?? context.l10n.noFolderSelected,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: path != null ? colorScheme.onSurface : colorScheme.onSurfaceVariant,
                     ),
@@ -675,7 +678,7 @@ class _OutputDirectoryPicker extends StatelessWidget {
         OutlinedButton.icon(
           onPressed: onTap,
           icon: const Icon(Icons.drive_folder_upload_outlined, size: 18),
-          label: const Text('Browse'),
+          label: Text(context.l10n.browse),
         ),
       ],
     );
@@ -779,14 +782,14 @@ class _DownloadButtonState extends State<_DownloadButton> {
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 18),
-              child: const Row(
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.download_rounded, color: Colors.white, size: 22),
-                  SizedBox(width: 10),
+                  const Icon(Icons.download_rounded, color: Colors.white, size: 22),
+                  const SizedBox(width: 10),
                   Text(
-                    'Start Download',
-                    style: TextStyle(
+                    context.l10n.startDownload,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.w700,

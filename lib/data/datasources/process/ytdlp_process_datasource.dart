@@ -233,12 +233,20 @@ class YtDlpProcessDatasource {
       cancelOnError: false,
     );
 
-    // Log stderr (yt-dlp writes progress info to stderr too)
+    // Log stderr (yt-dlp may write post-processing status here too).
     final stderrBuffer = StringBuffer();
     process.stderr.transform(utf8.decoder).transform(const LineSplitter()).listen(
       (line) {
         _logger.w('[yt-dlp stderr] $line');
         stderrBuffer.writeln(line);
+
+        // Surface post-processing (merge/convert/embed) so the row doesn't
+        // appear stuck at 100% while yt-dlp finishes up.
+        final pp = _detectPostProcessing(line, current);
+        if (pp != null && current.status != pp && !controller.isClosed) {
+          current = current.copyWith(status: pp);
+          controller.add(current);
+        }
       },
       cancelOnError: false,
     );
@@ -277,9 +285,27 @@ class YtDlpProcessDatasource {
       '--progress',
       '--progress-template',
       'download:%(progress._percent_str)s|%(progress._speed_str)s|%(progress._eta_str)s|%(progress.downloaded_bytes)s|%(progress.total_bytes)s|%(progress.filename)s',
+      // Post-processing progress (merge / convert / embed). Lets the UI leave
+      // the "downloading" state once the bytes are done and yt-dlp is busy
+      // merging or converting, instead of appearing stuck at 100%.
+      '--progress-template',
+      'postprocess:__PP__|%(progress.status)s',
       '--print', 'after_filter:%(title)s|%(webpage_url_domain)s|%(thumbnail)s',
+      // Final output path, printed after the file has been moved to its final
+      // location (post-processing complete). Used for "open folder" / "play".
+      '--print', 'after_move:__FILE__%(filepath)s',
       '--no-simulate',
       '--no-warnings',
+
+      // ── Speed & reliability ──────────────────────────────────────────────
+      // Download fragments in parallel. This is the single biggest speedup for
+      // fragmented DASH/HLS streams (most YouTube videos) on fast connections.
+      // Users can override this by passing their own value in Custom yt-dlp
+      // arguments (the later value wins).
+      '--concurrent-fragments', '4',
+      // Retry transient network failures instead of giving up immediately.
+      '--retries', '10',
+      '--fragment-retries', '10',
     ];
 
     // FFmpeg location
@@ -346,8 +372,20 @@ class YtDlpProcessDatasource {
     return args;
   }
 
-  /// Parses a single stdout line from yt-dlp into a state update.
+  /// Parses a single output line from yt-dlp into a state update.
   DownloadItem? _parseLine(String line, DownloadItem current) {
+    // Final output path marker emitted by `--print after_move:__FILE__...`.
+    if (line.startsWith('__FILE__')) {
+      final path = line.substring('__FILE__'.length).trim();
+      return path.isNotEmpty ? current.copyWith(outputPath: path) : null;
+    }
+
+    // Post-processing marker emitted by the `postprocess:` progress template.
+    if (line.toLowerCase().startsWith('__pp__|')) {
+      final status = _detectPostProcessing(line, current);
+      return status != null ? current.copyWith(status: status) : null;
+    }
+
     // Progress line: percent|speed|eta|downloaded|total|filename
     final parts = line.split('|');
     if (parts.length >= 5 && parts[0].contains('%')) {
@@ -360,11 +398,14 @@ class YtDlpProcessDatasource {
       final filename = parts.length > 5 ? parts[5].trim() : null;
 
       if (percent != null) {
-        // Detect conversion/merging phases
         DownloadStatus status = current.status;
-        if (line.toLowerCase().contains('convert')) status = DownloadStatus.converting;
-        if (line.toLowerCase().contains('merg')) status = DownloadStatus.merging;
-        if (status == DownloadStatus.preparing && percent > 0) status = DownloadStatus.downloading;
+        // A fresh progress line means we're actively downloading bytes again
+        // (handles the audio phase that follows the video phase).
+        if (status == DownloadStatus.preparing ||
+            status == DownloadStatus.merging ||
+            status == DownloadStatus.converting) {
+          status = DownloadStatus.downloading;
+        }
 
         return current.copyWith(
           status: status,
@@ -394,12 +435,44 @@ class YtDlpProcessDatasource {
       }
     }
 
-    // Detect conversion/merging from log lines
-    if (line.contains('[ffmpeg]') || line.contains('Converting')) {
-      return current.copyWith(status: DownloadStatus.converting);
+    // Fallback: detect post-processing from yt-dlp's own log lines.
+    final pp = _detectPostProcessing(line, current);
+    if (pp != null) return current.copyWith(status: pp);
+
+    return null;
+  }
+
+  /// Detects whether [line] indicates a post-processing phase (merging audio
+  /// and video, extracting/converting audio, embedding metadata/thumbnails,
+  /// SponsorBlock, etc.), returning the status to show or null if it doesn't.
+  DownloadStatus? _detectPostProcessing(String line, DownloadItem current) {
+    final lower = line.toLowerCase();
+
+    // Marker from `postprocess:__PP__|%(progress.status)s`.
+    if (lower.startsWith('__pp__|')) {
+      final status = lower.split('|').elementAtOrNull(1)?.trim();
+      // 'finished' means the process is about to exit → let exit code complete it.
+      if (status == 'finished') return null;
+      return current.type == DownloadType.video
+          ? DownloadStatus.merging
+          : DownloadStatus.converting;
     }
-    if (line.contains('Merging')) {
-      return current.copyWith(status: DownloadStatus.merging);
+
+    // yt-dlp postprocessor log lines (fallback when the template is not shown).
+    if (lower.startsWith('[merger]') || lower.contains('merging formats')) {
+      return DownloadStatus.merging;
+    }
+    if (lower.startsWith('[extractaudio]') ||
+        lower.startsWith('[videoconvertor]') ||
+        lower.startsWith('[videoremuxer]') ||
+        lower.startsWith('[fixup') ||
+        lower.startsWith('[embedthumbnail]') ||
+        lower.startsWith('[metadata]') ||
+        lower.startsWith('[sponsorblock]') ||
+        lower.startsWith('[movefiles]') ||
+        lower.startsWith('[ffmpeg]') ||
+        lower.contains('converting')) {
+      return DownloadStatus.converting;
     }
 
     return null;

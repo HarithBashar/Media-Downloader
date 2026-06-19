@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/l10n/app_languages.dart';
 import '../../../core/themes/app_colors.dart';
 import '../../../core/utils/size_formatter.dart';
 import '../../../domain/entities/download_enums.dart';
@@ -33,16 +34,16 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final historyState = ref.watch(historyProvider);
-
+    final l10n = context.l10n;
 
     return ContentScaffold(
-      title: 'History',
+      title: l10n.historyTitle,
       actions: [
         if (historyState.items.isNotEmpty)
           TextButton.icon(
             onPressed: () => _confirmClearAll(context, ref),
             icon: const Icon(Icons.delete_sweep_rounded, size: 18),
-            label: const Text('Clear All'),
+            label: Text(l10n.clearAll),
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
           ),
       ],
@@ -55,7 +56,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               controller: _searchController,
               onChanged: (q) => ref.read(historyProvider.notifier).search(q),
               decoration: InputDecoration(
-                hintText: 'Search history…',
+                hintText: l10n.searchHistoryHint,
                 prefixIcon: const Icon(Icons.search_rounded, size: 20),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
@@ -80,11 +81,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     ? EmptyState(
                         icon: Icons.history_rounded,
                         title: historyState.searchQuery.isNotEmpty
-                            ? 'No results found'
-                            : 'No download history',
+                            ? l10n.noResultsFound
+                            : l10n.noDownloadHistory,
                         subtitle: historyState.searchQuery.isNotEmpty
-                            ? 'Try a different search term.'
-                            : 'Your completed downloads will appear here.',
+                            ? l10n.tryDifferentSearch
+                            : l10n.completedDownloadsAppearHere,
                       )
                     : ListView.builder(
                         padding: const EdgeInsets.all(24),
@@ -106,17 +107,18 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   }
 
   Future<void> _confirmClearAll(BuildContext context, WidgetRef ref) async {
+    final l10n = context.l10n;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Clear all history?'),
-        content: const Text('This action cannot be undone.'),
+        title: Text(l10n.clearAllHistory),
+        content: Text(l10n.actionCannotBeUndone),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Clear All'),
+            child: Text(l10n.clearAll),
           ),
         ],
       ),
@@ -233,17 +235,17 @@ class _HistoryCardState extends State<_HistoryCard> {
                   children: [
                     _ActionIconButton(
                       icon: Icons.folder_open_rounded,
-                      tooltip: 'Open folder',
+                      tooltip: context.l10n.openFolder,
                       onPressed: () => _openFolder(item.outputPath),
                     ),
                     _ActionIconButton(
                       icon: Icons.open_in_new_rounded,
-                      tooltip: 'Open file',
+                      tooltip: context.l10n.openFile,
                       onPressed: () => _openFile(item.outputPath),
                     ),
                     _ActionIconButton(
                       icon: Icons.delete_outline_rounded,
-                      tooltip: 'Delete from history',
+                      tooltip: context.l10n.deleteFromHistory,
                       color: AppColors.error,
                       onPressed: widget.onDelete,
                     ),

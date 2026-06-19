@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Typography system for Media Downloader using Inter font.
+/// Typography system for Media Downloader.
 ///
-/// Falls back to system font if Google Fonts is unavailable (offline).
+/// Uses Inter for Latin scripts and Cairo for Arabic (Inter has no Arabic
+/// glyphs). Falls back to the system font if Google Fonts is unavailable.
 class AppTypography {
   AppTypography._();
 
-  static TextTheme textTheme(ColorScheme colorScheme) {
-    final base = GoogleFonts.interTextTheme(
-      TextTheme(
+  static TextTheme textTheme(ColorScheme colorScheme, {bool arabic = false}) {
+    final baseTheme = TextTheme(
         displayLarge: TextStyle(color: colorScheme.onSurface),
         displayMedium: TextStyle(color: colorScheme.onSurface),
         displaySmall: TextStyle(color: colorScheme.onSurface),
@@ -25,8 +25,12 @@ class AppTypography {
         labelLarge: TextStyle(color: colorScheme.onSurface),
         labelMedium: TextStyle(color: colorScheme.onSurfaceVariant),
         labelSmall: TextStyle(color: colorScheme.onSurfaceVariant),
-      ),
     );
+
+    // Inter has no Arabic glyphs; Cairo covers both Arabic and Latin.
+    final base = arabic
+        ? GoogleFonts.cairoTextTheme(baseTheme)
+        : GoogleFonts.interTextTheme(baseTheme);
 
     return base.copyWith(
       displayLarge: base.displayLarge?.copyWith(

@@ -9,12 +9,15 @@ import 'app_typography.dart';
 class AppTheme {
   AppTheme._();
 
-  static ThemeData get light => _buildTheme(brightness: Brightness.light);
-  static ThemeData get dark => _buildTheme(brightness: Brightness.dark);
+  static ThemeData light([Locale? locale]) =>
+      _buildTheme(brightness: Brightness.light, locale: locale);
+  static ThemeData dark([Locale? locale]) =>
+      _buildTheme(brightness: Brightness.dark, locale: locale);
 
-  static ThemeData _buildTheme({required Brightness brightness}) {
+  static ThemeData _buildTheme({required Brightness brightness, Locale? locale}) {
     final isDark = brightness == Brightness.dark;
     final AppSurfaceColors colors = isDark ? AppColors.dark : AppColors.light;
+    final bool arabic = locale?.languageCode == 'ar';
 
     final colorScheme = ColorScheme(
       brightness: brightness,
@@ -55,7 +58,7 @@ class AppTheme {
       useMaterial3: true,
       brightness: brightness,
       colorScheme: colorScheme,
-      textTheme: AppTypography.textTheme(colorScheme),
+      textTheme: AppTypography.textTheme(colorScheme, arabic: arabic),
 
       // ─── Scaffold ───────────────────────────────────────────────────────────
       scaffoldBackgroundColor: colors.background,
@@ -67,7 +70,7 @@ class AppTheme {
         elevation: 0,
         scrolledUnderElevation: 1,
         shadowColor: colors.outline.withValues(alpha: 0.3),
-        titleTextStyle: AppTypography.textTheme(colorScheme).titleLarge?.copyWith(
+        titleTextStyle: AppTypography.textTheme(colorScheme, arabic: arabic).titleLarge?.copyWith(
           fontWeight: FontWeight.w600,
         ),
       ),

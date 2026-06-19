@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/dependency_injection/injection_container.dart';
+import '../../../core/l10n/app_languages.dart';
 import '../../../core/services/binary_manager_service.dart';
 import '../../../core/themes/app_colors.dart';
 
@@ -84,7 +85,7 @@ class _SplashScreenState extends State<SplashScreen> {
             const SizedBox(height: 12),
             
             Text(
-              'Your media, anywhere',
+              context.l10n.splashTagline,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),

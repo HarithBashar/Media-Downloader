@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/l10n/app_languages.dart';
 import '../../../core/themes/app_colors.dart';
 import '../../../domain/entities/download_enums.dart';
 import '../../viewmodels/download_queue_viewmodel.dart';
@@ -24,11 +25,12 @@ class QueueScreen extends ConsumerWidget {
     final queue = List<QueueEntry>.from(rawQueue)
       ..sort((a, b) => b.item.createdAt.compareTo(a.item.createdAt));
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
     final active = queue.where((e) => e.item.status.isActive).length;
     final completed = queue.where((e) => e.item.status == DownloadStatus.completed).length;
 
     return ContentScaffold(
-      title: 'Queue',
+      title: l10n.queueTitle,
       actions: [
         // Spinning download indicator when downloads are active
         if (active > 0) ...[
@@ -39,14 +41,14 @@ class QueueScreen extends ConsumerWidget {
           TextButton.icon(
             onPressed: () => ref.read(downloadQueueProvider.notifier).clearCompleted(),
             icon: const Icon(Icons.clear_all_rounded, size: 18),
-            label: const Text('Clear Completed'),
+            label: Text(l10n.clearCompleted),
           ),
       ],
       child: queue.isEmpty
-          ? const EmptyState(
+          ? EmptyState(
               icon: Icons.download_rounded,
-              title: 'No downloads yet',
-              subtitle: 'Add a URL on the Download tab to get started.',
+              title: l10n.noDownloadsYet,
+              subtitle: l10n.noDownloadsSubtitle,
             )
           : Column(
               children: [
@@ -63,26 +65,26 @@ class QueueScreen extends ConsumerWidget {
                     child: Row(
                       children: [
                         _StatBadge(
-                          label: 'Active',
+                          label: l10n.statActive,
                           count: active,
                           color: AppColors.stateDownloading,
                           isActive: active > 0,
                         ),
                         const SizedBox(width: 24),
                         _StatBadge(
-                          label: 'Queued',
+                          label: l10n.statQueued,
                           count: queue.where((e) => e.item.status == DownloadStatus.waiting).length,
                           color: AppColors.stateWaiting,
                         ),
                         const SizedBox(width: 24),
                         _StatBadge(
-                          label: 'Completed',
+                          label: l10n.statCompleted,
                           count: completed,
                           color: AppColors.stateCompleted,
                         ),
                         const SizedBox(width: 24),
                         _StatBadge(
-                          label: 'Failed',
+                          label: l10n.statFailed,
                           count: queue.where((e) => e.item.status == DownloadStatus.failed).length,
                           color: AppColors.stateFailed,
                         ),
@@ -168,7 +170,7 @@ class _ActiveDownloadIndicatorState extends State<_ActiveDownloadIndicator>
           ),
           const SizedBox(width: 6),
           Text(
-            'Downloading…',
+            context.l10n.downloadingEllipsis,
             style: TextStyle(
               color: AppColors.primary,
               fontSize: 12,
@@ -207,7 +209,7 @@ class _StatBadge extends StatelessWidget {
           ),
         const SizedBox(width: 6),
         Text(
-          '$count $label',
+          context.l10n.statBadge(count, label),
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),

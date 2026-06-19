@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/l10n/app_languages.dart';
 import '../../../core/themes/app_colors.dart';
 import '../../viewmodels/binary_setup_viewmodel.dart';
 
@@ -88,7 +89,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> with SingleTickerProv
               const SizedBox(height: 8),
 
               Text(
-                'Setting up your download engine…',
+                context.l10n.settingUpEngine,
                 style: textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -101,7 +102,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> with SingleTickerProv
                 duration: AppConstants.mediumAnimation,
                 child: setupState.hasFailed
                     ? _ErrorCard(
-                        error: setupState.error ?? 'Setup failed.',
+                        error: setupState.error ?? context.l10n.setupFailed,
                         onRetry: () => ref.read(binarySetupProvider.notifier).runSetup(),
                       )
                     : _ProgressSection(state: setupState),
@@ -191,7 +192,7 @@ class _ProgressSection extends StatelessWidget {
         const SizedBox(height: 12),
 
         Text(
-          isDone ? 'Ready!' : '${(state.progress * 100).toInt()}%',
+          isDone ? context.l10n.ready : '${(state.progress * 100).toInt()}%',
           style: textTheme.labelMedium?.copyWith(
             color: isDone ? AppColors.success : colorScheme.onSurfaceVariant,
             fontWeight: FontWeight.w600,
@@ -232,7 +233,7 @@ class _ErrorCard extends StatelessWidget {
           FilledButton.icon(
             onPressed: onRetry,
             icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Retry Setup'),
+            label: Text(context.l10n.retrySetup),
           ),
         ],
       ),

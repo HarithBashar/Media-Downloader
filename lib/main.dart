@@ -5,6 +5,7 @@ import 'core/constants/app_constants.dart';
 import 'core/dependency_injection/injection_container.dart';
 import 'core/themes/app_theme.dart';
 import 'domain/entities/app_settings.dart';
+import 'l10n/app_localizations.dart';
 import 'presentation/router/app_router.dart';
 import 'presentation/viewmodels/settings_viewmodel.dart';
 
@@ -49,6 +50,7 @@ class MediaDownloaderApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
     final settingsAsync = ref.watch(settingsProvider);
+    final locale = ref.watch(localeProvider);
 
     final themeMode = settingsAsync.valueOrNull?.themeMode ?? AppThemeMode.system;
 
@@ -56,9 +58,14 @@ class MediaDownloaderApp extends ConsumerWidget {
       title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
 
+      // ── Localization ────────────────────────────────────────────────────────
+      locale: locale,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+
       // ── Theming ─────────────────────────────────────────────────────────────
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
+      theme: AppTheme.light(locale),
+      darkTheme: AppTheme.dark(locale),
       themeMode: switch (themeMode) {
         AppThemeMode.light => ThemeMode.light,
         AppThemeMode.dark => ThemeMode.dark,

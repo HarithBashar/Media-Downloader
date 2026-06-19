@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/dependency_injection/injection_container.dart';
 import '../../domain/entities/app_settings.dart';
@@ -42,3 +43,12 @@ class SettingsViewModel extends AsyncNotifier<AppSettings> {
 final settingsProvider = AsyncNotifierProvider<SettingsViewModel, AppSettings>(
   SettingsViewModel.new,
 );
+
+/// The active UI locale, derived from the user's saved language preference.
+///
+/// Defaults to English until settings finish loading. Drives both
+/// [MaterialApp.locale] and (through it) text direction for RTL languages.
+final localeProvider = Provider<Locale>((ref) {
+  final language = ref.watch(settingsProvider).valueOrNull?.language ?? 'en';
+  return Locale(language);
+});

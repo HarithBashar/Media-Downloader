@@ -4,8 +4,10 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/l10n/app_languages.dart';
 import '../../../core/themes/app_colors.dart';
 import '../../../domain/entities/app_settings.dart';
+import '../../l10n/enum_localizations.dart';
 import '../../viewmodels/settings_viewmodel.dart';
 import '../../widgets/content_scaffold.dart';
 
@@ -18,10 +20,10 @@ class SettingsScreen extends ConsumerWidget {
     final settingsAsync = ref.watch(settingsProvider);
 
     return ContentScaffold(
-      title: 'Settings',
+      title: context.l10n.settingsTitle,
       child: settingsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error loading settings: $e')),
+        error: (e, _) => Center(child: Text(context.l10n.errorLoadingSettings(e.toString()))),
         data: (settings) => _SettingsContent(settings: settings),
       ),
     );
@@ -35,6 +37,7 @@ class _SettingsContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final vm = ref.read(settingsProvider.notifier);
+    final l10n = context.l10n;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
@@ -43,23 +46,27 @@ class _SettingsContent extends ConsumerWidget {
         children: [
           // ── General ──────────────────────────────────────────────────────────
           _SettingsSection(
-            title: 'General',
+            title: l10n.general,
             icon: Icons.tune_rounded,
             children: [
+              _LanguageSetting(
+                current: settings.language,
+                onChanged: (code) => vm.updateField((s) => s.copyWith(language: code)),
+              ),
               _ThemeSetting(
                 current: settings.themeMode,
                 onChanged: (mode) => vm.updateField((s) => s.copyWith(themeMode: mode)),
               ),
               _SwitchSetting(
-                label: 'Start on system startup',
-                subtitle: 'Launch Media Downloader when you log in',
+                label: l10n.startOnStartup,
+                subtitle: l10n.startOnStartupSubtitle,
                 icon: Icons.start_rounded,
                 value: settings.startOnStartup,
                 onChanged: (v) => vm.updateField((s) => s.copyWith(startOnStartup: v)),
               ),
               _SwitchSetting(
-                label: 'Minimize to system tray',
-                subtitle: 'Keep running in the background when window is closed',
+                label: l10n.minimizeToTray,
+                subtitle: l10n.minimizeToTraySubtitle,
                 icon: Icons.minimize_rounded,
                 value: settings.minimizeToTray,
                 onChanged: (v) => vm.updateField((s) => s.copyWith(minimizeToTray: v)),
@@ -71,16 +78,16 @@ class _SettingsContent extends ConsumerWidget {
 
           // ── Downloads ────────────────────────────────────────────────────────
           _SettingsSection(
-            title: 'Downloads',
+            title: l10n.downloads,
             icon: Icons.download_rounded,
             children: [
               _DirectorySetting(
-                label: 'Default download location',
-                subtitle: settings.defaultOutputDirectory ?? 'System Downloads folder',
+                label: l10n.defaultDownloadLocation,
+                subtitle: settings.defaultOutputDirectory ?? l10n.systemDownloadsFolder,
                 icon: Icons.folder_outlined,
                 onTap: () async {
                   final result = await FilePicker.platform.getDirectoryPath(
-                    dialogTitle: 'Select Default Download Location',
+                    dialogTitle: l10n.selectDefaultDownloadLocation,
                   );
                   if (result != null) {
                     vm.updateField((s) => s.copyWith(defaultOutputDirectory: result));
@@ -88,8 +95,8 @@ class _SettingsContent extends ConsumerWidget {
                 },
               ),
               _SliderSetting(
-                label: 'Concurrent downloads',
-                subtitle: '${settings.maxConcurrentDownloads} simultaneous downloads',
+                label: l10n.concurrentDownloads,
+                subtitle: l10n.concurrentDownloadsSubtitle(settings.maxConcurrentDownloads),
                 icon: Icons.multiple_stop_rounded,
                 value: settings.maxConcurrentDownloads.toDouble(),
                 min: 1,
@@ -99,8 +106,8 @@ class _SettingsContent extends ConsumerWidget {
                     vm.updateField((s) => s.copyWith(maxConcurrentDownloads: v.round())),
               ),
               _SliderSetting(
-                label: 'Retry count',
-                subtitle: '${settings.retryCount} retries on failure',
+                label: l10n.retryCountLabel,
+                subtitle: l10n.retryCountSubtitle(settings.retryCount),
                 icon: Icons.replay_rounded,
                 value: settings.retryCount.toDouble(),
                 min: 0,
@@ -114,15 +121,15 @@ class _SettingsContent extends ConsumerWidget {
                 onChanged: (v) => vm.updateField((s) => s.copyWith(speedLimitKbps: v)),
               ),
               _SwitchSetting(
-                label: 'Open file after download',
-                subtitle: 'Automatically open completed files',
+                label: l10n.openFileAfterDownload,
+                subtitle: l10n.openFileAfterDownloadSubtitle,
                 icon: Icons.open_in_new_rounded,
                 value: settings.autoOpenFile,
                 onChanged: (v) => vm.updateField((s) => s.copyWith(autoOpenFile: v)),
               ),
               _SwitchSetting(
-                label: 'Open folder after download',
-                subtitle: 'Reveal completed file in its folder',
+                label: l10n.openFolderAfterDownload,
+                subtitle: l10n.openFolderAfterDownloadSubtitle,
                 icon: Icons.folder_open_rounded,
                 value: settings.autoOpenFolder,
                 onChanged: (v) => vm.updateField((s) => s.copyWith(autoOpenFolder: v)),
@@ -138,37 +145,37 @@ class _SettingsContent extends ConsumerWidget {
             icon: Icons.terminal_rounded,
             children: [
               _SwitchSetting(
-                label: 'Auto-update yt-dlp',
-                subtitle: 'Download the latest version on startup',
+                label: l10n.autoUpdateYtDlp,
+                subtitle: l10n.autoUpdateYtDlpSubtitle,
                 icon: Icons.system_update_alt_rounded,
                 value: settings.autoUpdateYtDlp,
                 onChanged: (v) => vm.updateField((s) => s.copyWith(autoUpdateYtDlp: v)),
               ),
               _SwitchSetting(
-                label: 'Embed metadata by default',
-                subtitle: 'Add title, artist, and other tags to files',
+                label: l10n.embedMetadataByDefault,
+                subtitle: l10n.embedMetadataByDefaultSubtitle,
                 icon: Icons.info_outline_rounded,
                 value: settings.embedMetadataDefault,
                 onChanged: (v) => vm.updateField((s) => s.copyWith(embedMetadataDefault: v)),
               ),
               _SwitchSetting(
-                label: 'Use download archive',
-                subtitle: 'Skip already-downloaded videos in playlists',
+                label: l10n.useDownloadArchive,
+                subtitle: l10n.useDownloadArchiveSubtitle,
                 icon: Icons.archive_outlined,
                 value: settings.useDownloadArchive,
                 onChanged: (v) => vm.updateField((s) => s.copyWith(useDownloadArchive: v)),
               ),
               _TextFieldSetting(
-                label: 'Custom yt-dlp arguments',
-                subtitle: 'Extra arguments appended to every download',
+                label: l10n.customYtDlpArgs,
+                subtitle: l10n.customYtDlpArgsSubtitle,
                 icon: Icons.code_rounded,
                 value: settings.customYtDlpArgs,
-                hint: 'e.g. --no-playlist --geo-bypass',
+                hint: l10n.customYtDlpArgsHint,
                 onChanged: (v) => vm.updateField((s) => s.copyWith(customYtDlpArgs: v)),
               ),
               _TextFieldSetting(
-                label: 'Proxy URL',
-                subtitle: 'HTTP/HTTPS/SOCKS5 proxy for downloads',
+                label: l10n.proxyUrl,
+                subtitle: l10n.proxyUrlSubtitle,
                 icon: Icons.vpn_lock_rounded,
                 value: settings.proxyUrl,
                 hint: 'socks5://127.0.0.1:1080',
@@ -181,12 +188,12 @@ class _SettingsContent extends ConsumerWidget {
 
           // ── Advanced ─────────────────────────────────────────────────────────
           _SettingsSection(
-            title: 'Advanced',
+            title: l10n.advanced,
             icon: Icons.settings_rounded,
             children: [
               _SwitchSetting(
-                label: 'Debug logging',
-                subtitle: 'Write verbose logs to disk for troubleshooting',
+                label: l10n.debugLogging,
+                subtitle: l10n.debugLoggingSubtitle,
                 icon: Icons.bug_report_outlined,
                 value: settings.debugLogging,
                 onChanged: (v) => vm.updateField((s) => s.copyWith(debugLogging: v)),
@@ -196,17 +203,17 @@ class _SettingsContent extends ConsumerWidget {
                   final confirm = await showDialog<bool>(
                     context: context,
                     builder: (ctx) => AlertDialog(
-                      title: const Text('Reset all settings?'),
-                      content: const Text('This will restore all settings to their defaults.'),
+                      title: Text(l10n.resetAllSettingsQuestion),
+                      content: Text(l10n.resetAllSettingsConfirm),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(ctx, false),
-                          child: const Text('Cancel'),
+                          child: Text(l10n.cancel),
                         ),
                         FilledButton(
                           onPressed: () => Navigator.pop(ctx, true),
                           style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-                          child: const Text('Reset'),
+                          child: Text(l10n.reset),
                         ),
                       ],
                     ),
@@ -261,18 +268,24 @@ class _SettingsSection extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Container(
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: colorScheme.surfaceContainer,
             borderRadius: BorderRadius.circular(AppConstants.cardBorderRadius),
             border: Border.all(color: colorScheme.outlineVariant),
           ),
-          child: Column(
-            children: children.expand((w) sync* {
-              yield w;
-              if (w != children.last) {
-                yield const Divider(height: 1, indent: 16, endIndent: 16);
-              }
-            }).toList(),
+          // Transparent Material so ListTile ink/background paints above the
+          // container's color instead of being hidden by it.
+          child: Material(
+            type: MaterialType.transparency,
+            child: Column(
+              children: children.expand((w) sync* {
+                yield w;
+                if (w != children.last) {
+                  yield const Divider(height: 1, indent: 16, endIndent: 16);
+                }
+              }).toList(),
+            ),
           ),
         ),
       ],
@@ -314,16 +327,47 @@ class _ThemeSetting extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return ListTile(
       leading: const Icon(Icons.palette_outlined, size: 20),
-      title: const Text('Theme', style: TextStyle(fontWeight: FontWeight.w500)),
-      subtitle: Text(current.label),
+      title: Text(l10n.theme, style: const TextStyle(fontWeight: FontWeight.w500)),
+      subtitle: Text(current.localizedLabel(l10n)),
       trailing: SegmentedButton<AppThemeMode>(
         segments: AppThemeMode.values.map((m) => ButtonSegment(
           value: m,
-          label: Text(m.label, style: const TextStyle(fontSize: 12)),
+          label: Text(m.localizedLabel(l10n), style: const TextStyle(fontSize: 12)),
         )).toList(),
         selected: {current},
+        onSelectionChanged: (s) => onChanged(s.first),
+        style: const ButtonStyle(
+          visualDensity: VisualDensity.compact,
+        ),
+      ),
+    );
+  }
+}
+
+/// Language selector for switching the app's UI language.
+class _LanguageSetting extends StatelessWidget {
+  const _LanguageSetting({required this.current, required this.onChanged});
+  final String current;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = languageForCode(current).code;
+    return ListTile(
+      leading: const Icon(Icons.language_rounded, size: 20),
+      title: Text(context.l10n.language, style: const TextStyle(fontWeight: FontWeight.w500)),
+      subtitle: Text(languageForCode(current).nativeName),
+      trailing: SegmentedButton<String>(
+        segments: supportedLanguages
+            .map((lang) => ButtonSegment(
+                  value: lang.code,
+                  label: Text(lang.nativeName, style: const TextStyle(fontSize: 12)),
+                ))
+            .toList(),
+        selected: {selected},
         onSelectionChanged: (s) => onChanged(s.first),
         style: const ButtonStyle(
           visualDensity: VisualDensity.compact,
@@ -419,18 +463,19 @@ class _SpeedLimitSetting extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return ListTile(
       leading: const Icon(Icons.speed_rounded, size: 20),
-      title: const Text('Speed limit', style: TextStyle(fontWeight: FontWeight.w500)),
-      subtitle: Text(current == 0 ? 'Unlimited' : '$current KB/s'),
+      title: Text(l10n.speedLimit, style: const TextStyle(fontWeight: FontWeight.w500)),
+      subtitle: Text(current == 0 ? l10n.unlimited : l10n.speedLimitValue(current)),
       trailing: SizedBox(
         width: 100,
         child: TextField(
           controller: TextEditingController(text: current == 0 ? '' : current.toString()),
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            hintText: '0 = unlimited',
-            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: InputDecoration(
+            hintText: l10n.speedLimitHint,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             isDense: true,
           ),
           onSubmitted: (v) => onChanged(int.tryParse(v) ?? 0),
@@ -519,7 +564,7 @@ class _DangerZone extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Danger Zone',
+            context.l10n.dangerZone,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
               color: AppColors.error,
               fontWeight: FontWeight.w600,
@@ -529,7 +574,7 @@ class _DangerZone extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: onReset,
             icon: const Icon(Icons.restore_rounded, size: 18),
-            label: const Text('Reset all settings to defaults'),
+            label: Text(context.l10n.resetAllSettingsToDefaults),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.error,
               side: const BorderSide(color: AppColors.error),
@@ -637,7 +682,7 @@ class _AboutDeveloperSectionState extends State<_AboutDeveloperSection> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Lead Developer & Designer',
+                      context.l10n.leadDeveloper,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: colorScheme.onSurfaceVariant,
                             fontWeight: FontWeight.w500,

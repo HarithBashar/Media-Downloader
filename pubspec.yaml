@@ -10,6 +10,10 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # Localization (Arabic / English + future languages)
+  flutter_localizations:
+    sdk: flutter
+
   # Icons
   cupertino_icons: ^1.0.8
 
@@ -58,7 +62,7 @@ dependencies:
   package_info_plus: ^8.3.0
 
   # Internationalization
-  intl: ^0.19.0
+  intl: ^0.20.2
 
   # Google Fonts
   google_fonts: ^6.2.1
@@ -85,6 +89,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  # Generate localization (AppLocalizations) from lib/l10n/*.arb
+  generate: true
 
   assets:
     - assets/images/
